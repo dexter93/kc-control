@@ -1,0 +1,7 @@
+node_modules/
+src-tauri/target/
+src-tauri/gen/
+
+# Keychron's launcher bundles: proprietary, kept locally for reference only
+ref/kcm6main.txt
+ref/2.js
