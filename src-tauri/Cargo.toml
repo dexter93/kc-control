@@ -3,6 +3,7 @@ name = "kc-control"
 version = "0.1.0"
 description = "Switches Keychron mouse profiles based on the focused app"
 edition = "2021"
+license = "MIT"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

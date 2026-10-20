@@ -5,9 +5,11 @@ capture from a Keychron M6 (VID `0x3434`, PID `0xD060`, firmware 1.0.3, connecte
 2.4 GHz receiver).
 
 Line references (`kcm6main.txt:NNNNN`) point at the minified bundle so each claim can be re-checked.
+The bundles themselves are Keychron's code and aren't included in this repository; save the launcher's
+JavaScript from your browser's DevTools if you want to follow the references.
 
 > **Status legend**
-> - ✅ **Verified** — seen in the live capture from your M6.
+> - ✅ **Verified** — seen in the live capture from the test M6.
 > - 📖 **From code** — read from the launcher source for the `"8k"` protocol, not yet tested on hardware.
 > - ⚠️ **Partial** — the meaning of some bytes is inferred, see the note.
 
@@ -25,7 +27,7 @@ Line references (`kcm6main.txt:NNNNN`) point at the minified bundle so each clai
 The launcher chooses the protocol from the collection the mouse exposes (`kcm6main.txt:132386`):
 `0xFFC1` → `"8k"`, `0xFF0A` → `"4k"` or `"8k_nordic"` (probed), `usagePage 140` → `"1k"` (dongle bridge).
 A per-model JSON (`https://launcher.keychron.com/…/device/<vid<<16|pid>/json/v3.json`) can override it.
-This document covers only `"8k"`, which is what your M6 uses.
+This document covers only `"8k"`, which is what the M6 uses.
 
 ### Report IDs ✅
 
@@ -116,7 +118,7 @@ Copy that behaviour. If you fire commands back to back, the receiver drops them.
 
 | Byte(s) | Meaning |
 |---|---|
-| 1–2 | Protocol version, little-endian. **Your M6: 4.** Version ≥ 6 changes some layouts. |
+| 1–2 | Protocol version, little-endian. **Test M6: 4.** Version ≥ 6 changes some layouts. |
 | 3–4 | VID, little-endian |
 | 5–6 | PID, little-endian |
 | 7 | Firmware minor (high nibble) and patch (low nibble) |
@@ -159,7 +161,7 @@ Capture: `OUT B5 02 01` → `IN B6 02 04 00 34 34 60 D0 03 01 11 …` = protocol
 Connection-mode-indexed fields hold three slots: `[0]` wired, `[1]` 2.4 GHz, `[2]` third mode
 (probably Bluetooth). Index with the current `workMode`.
 
-| Byte(s) | Field | Notes / your capture |
+| Byte(s) | Field | Notes / test M6 value |
 |---|---|---|
 | 1 | **Current profile** (0-based) | `01` → Profile 2 |
 | 2, 3, 4 | Low nibble = **DPI level index**, high nibble = **polling level index**, one byte per connection mode | `22 22 02` → DPI level 2, polling level 2 |
@@ -213,7 +215,7 @@ Connection-mode-indexed fields hold three slots: `[0]` wired, `[1]` 2.4 GHz, `[2
 | feature4 | 2 | Haptic motor |
 | feature4 | 4 | LOD level supported |
 
-Your M6: `feature1 = 0x37` (scroll, debounce, max/step, polling gears, profiles), and feature2 and feature3 are 0.
+Test M6: `feature1 = 0x37` (scroll, debounce, max/step, polling gears, profiles), and feature2 and feature3 are 0.
 So it uses the plain `0x40` DPI and `0x41` polling commands.
 
 ### 3.5 Select profile (`0x0E`) ✅
@@ -296,9 +298,9 @@ Function types (`EFunKey`, `kcm6main.txt:88836` — the enum module used for `"8
 
 **Rapid fire mouse keys** (type 7, kind 1): left 1, right 2, middle 4, front 8, back 16.
 
-**Button indices.** The model JSON lists the buttons; your M6 has 11. The launcher's UI enum uses
+**Button indices.** The model JSON lists the buttons; the test M6 has 11. The launcher's UI enum uses
 left 0, middle 1, right 2, backward 3, forward 4 for the first five. Higher indices (5+) are
-model-specific; your capture shows indices up to 14.
+model-specific; the capture shows indices up to 14.
 
 #### 3.6.1 List remapped buttons (`0x61`) ⚠️
 
@@ -309,7 +311,7 @@ model-specific; your capture shows indices up to 14.
 - Then `n` variable-length entries. Each entry's first byte `h` holds the button index in `h & 0x1F`, and the entry is `2 + (h >> 5)` bytes long.
 
 The launcher uses this list **only for indices**. It then calls `0x62` for every listed index and for every index > 4.
-Don't rely on the other bytes of each entry: in your capture they don't line up with the `0x62` results.
+Don't rely on the other bytes of each entry: in the capture they don't line up with the `0x62` results.
 
 #### 3.6.2 Get button (`0x62`) ✅
 
@@ -386,7 +388,7 @@ Step encoding (`serializeMacro`, `kcm6main.txt:85368`):
 
 ### 3.7 DPI (`0x40`) 📖
 
-`kcm6main.txt:85511`. Use this when separate X/Y DPI is **not** supported, which is the case for your M6.
+`kcm6main.txt:85511`. Use this when separate X/Y DPI is **not** supported, which is the case for the M6.
 
 **Request** — `B5`, 20 bytes:
 
@@ -431,7 +433,7 @@ Only when feature3 bit0 is set.
 
 **Reply:** `E4 …` or `41 …`
 
-Example — your table (125/500/1000), select 1000 Hz: `41 02 02 00 01 02 00 00 00 03`
+Example — the test M6 table (125/500/1000), select 1000 Hz: `41 02 02 00 01 02 00 00 00 03`
 
 #### 3.8.1 Per-mode polling rate (`0x4A` / `0x4B`) 📖
 

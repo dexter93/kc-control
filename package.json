@@ -2,6 +2,8 @@
   "name": "kc-control",
   "private": true,
   "version": "0.1.0",
+  "description": "Switches Keychron mouse profiles based on the focused app",
+  "license": "MIT",
   "scripts": {
     "tauri": "tauri",
     "dev": "tauri dev",
