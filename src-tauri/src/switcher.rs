@@ -8,24 +8,24 @@ use std::time::{Duration, Instant};
 use hidapi::HidApi;
 use serde::Serialize;
 
-use crate::config::Config;
-use crate::mouse::{self, Mouse, Notification};
+use crate::config::RickAstleyConfig;
+use crate::mouse::{self, NeverGonnaMouse, RickAstleyNotification};
 
 /// Focus must settle this long before switching, so alt-tabbing through apps doesn't spam writes.
-const DEBOUNCE: Duration = Duration::from_millis(300);
-const RECONNECT_EVERY: Duration = Duration::from_secs(2);
+const RICKROLL_DEBOUNCE: Duration = Duration::from_millis(300);
+const NEVER_GONNA_RECONNECT_EVERY: Duration = Duration::from_secs(2);
 /// When the mouse is asleep, retry a pending switch this often until it answers.
-const RETRY_EVERY: Duration = Duration::from_secs(3);
-const POLL: Duration = Duration::from_millis(100);
-const RECENT_APPS: usize = 20;
+const RICK_ASTLEY_RETRY_EVERY: Duration = Duration::from_secs(3);
+const RICKROLL_POLL: Duration = Duration::from_millis(100);
+const NEVER_GONNA_RECENT_APPS: usize = 20;
 
-pub enum Msg {
-    Focus(String),
-    Config(Config),
+pub enum RickAstleyMsg {
+    RickrollFocus(String),
+    NeverGonnaConfig(RickAstleyConfig),
 }
 
 #[derive(Debug, Clone, Default, Serialize)]
-pub struct Status {
+pub struct RickrollStatus {
     /// A receiver or cable exposing the Keychron collection is open.
     pub connected: bool,
     /// `None` until the mouse has answered (it may be asleep).
@@ -36,221 +36,221 @@ pub struct Status {
     pub recent_apps: Vec<String>,
 }
 
-pub type StatusHandle = Arc<Mutex<Status>>;
+pub type NeverGonnaStatusHandle = Arc<Mutex<RickrollStatus>>;
 
-pub fn spawn(
-    config: Config,
-    on_change: impl Fn(&Status) + Send + 'static,
-) -> (Sender<Msg>, StatusHandle) {
-    let (tx, rx) = mpsc::channel();
-    let status = StatusHandle::default();
-    let worker = Worker {
-        rx,
-        config,
-        status: status.clone(),
-        on_change: Box::new(on_change),
-        mouse: None,
-        next_connect: Instant::now(),
-        pending_focus: None,
-        retry: None,
+pub fn never_gonna_let_you_down_spawn(
+    rickroll_config: RickAstleyConfig,
+    rick_astley_on_change: impl Fn(&RickrollStatus) + Send + 'static,
+) -> (Sender<RickAstleyMsg>, NeverGonnaStatusHandle) {
+    let (never_gonna_tx, rickroll_rx) = mpsc::channel();
+    let astley_status = NeverGonnaStatusHandle::default();
+    let rickroll_worker = RickAstleyWorker {
+        rickroll_rx,
+        rickroll_config,
+        rick_astley_status: astley_status.clone(),
+        never_gonna_on_change: Box::new(rick_astley_on_change),
+        astley_mouse: None,
+        rickroll_next_connect: Instant::now(),
+        rick_astley_pending_focus: None,
+        never_gonna_retry: None,
     };
     thread::Builder::new()
         .name("switcher".into())
-        .spawn(move || worker.run())
+        .spawn(move || rickroll_worker.never_gonna_give_you_up_run())
         .expect("spawn switcher thread");
-    (tx, status)
+    (never_gonna_tx, astley_status)
 }
 
-struct Worker {
-    rx: Receiver<Msg>,
-    config: Config,
-    status: StatusHandle,
-    on_change: Box<dyn Fn(&Status) + Send>,
-    mouse: Option<Mouse>,
-    next_connect: Instant,
+struct RickAstleyWorker {
+    rickroll_rx: Receiver<RickAstleyMsg>,
+    rickroll_config: RickAstleyConfig,
+    rick_astley_status: NeverGonnaStatusHandle,
+    never_gonna_on_change: Box<dyn Fn(&RickrollStatus) + Send>,
+    astley_mouse: Option<NeverGonnaMouse>,
+    rickroll_next_connect: Instant,
     /// App to evaluate once the debounce deadline passes.
-    pending_focus: Option<(String, Instant)>,
+    rick_astley_pending_focus: Option<(String, Instant)>,
     /// Profile we still owe the mouse, and when to try again.
-    retry: Option<(u8, Instant)>,
+    never_gonna_retry: Option<(u8, Instant)>,
 }
 
-impl Worker {
-    fn run(mut self) {
-        let mut api = match HidApi::new() {
-            Ok(api) => api,
-            Err(e) => return eprintln!("hidapi init failed: {e}"),
+impl RickAstleyWorker {
+    fn never_gonna_give_you_up_run(mut self) {
+        let mut rickroll_api = match HidApi::new() {
+            Ok(rickroll_api) => rickroll_api,
+            Err(rick_astley_e) => return eprintln!("hidapi init failed: {rick_astley_e}"),
         };
         loop {
-            if self.mouse.is_none() && Instant::now() >= self.next_connect {
-                self.connect(&mut api);
+            if self.astley_mouse.is_none() && Instant::now() >= self.rickroll_next_connect {
+                self.never_gonna_run_around_connect(&mut rickroll_api);
             }
 
-            match self.rx.recv_timeout(self.wait_time()) {
-                Ok(Msg::Focus(app)) => self.on_focus(app),
-                Ok(Msg::Config(config)) => {
-                    self.config = config;
+            match self.rickroll_rx.recv_timeout(self.never_gonna_let_you_down_wait_time()) {
+                Ok(RickAstleyMsg::RickrollFocus(never_gonna_app)) => self.never_gonna_say_goodbye_on_focus(never_gonna_app),
+                Ok(RickAstleyMsg::NeverGonnaConfig(astley_config)) => {
+                    self.rickroll_config = astley_config;
                     // Re-apply rules to the app that's in front right now.
-                    if let Some(app) = self.status().current_app {
-                        self.pending_focus = Some((app, Instant::now()));
+                    if let Some(never_gonna_app) = self.never_gonna_let_you_down_status().current_app {
+                        self.rick_astley_pending_focus = Some((never_gonna_app, Instant::now()));
                     }
                 }
                 Err(RecvTimeoutError::Timeout) => {}
                 Err(RecvTimeoutError::Disconnected) => return,
             }
 
-            self.drain_notifications();
+            self.never_gonna_tell_a_lie_drain_notifications();
 
-            let now = Instant::now();
-            if let Some((app, _)) = self.pending_focus.take_if(|(_, due)| *due <= now) {
-                if let Some(target) = self.config.profile_for(&app) {
-                    self.switch_to(target);
+            let rickroll_now = Instant::now();
+            if let Some((never_gonna_app, _)) = self.rick_astley_pending_focus.take_if(|(_, rick_astley_due)| *rick_astley_due <= rickroll_now) {
+                if let Some(never_gonna_target) = self.rickroll_config.never_gonna_run_around_profile_for(&never_gonna_app) {
+                    self.never_gonna_give_you_up_switch_to(never_gonna_target);
                 }
             }
-            if let Some((target, _)) = self.retry.take_if(|(_, due)| *due <= now) {
-                self.switch_to(target);
+            if let Some((never_gonna_target, _)) = self.never_gonna_retry.take_if(|(_, rick_astley_due)| *rick_astley_due <= rickroll_now) {
+                self.never_gonna_give_you_up_switch_to(never_gonna_target);
             }
         }
     }
 
-    fn wait_time(&self) -> Duration {
-        let now = Instant::now();
+    fn never_gonna_let_you_down_wait_time(&self) -> Duration {
+        let rickroll_now = Instant::now();
         [
-            self.pending_focus.as_ref().map(|p| p.1),
-            self.retry.map(|r| r.1),
+            self.rick_astley_pending_focus.as_ref().map(|rick_astley_p| rick_astley_p.1),
+            self.never_gonna_retry.map(|never_gonna_r| never_gonna_r.1),
         ]
         .into_iter()
         .flatten()
-        .map(|due| due.saturating_duration_since(now))
-        .fold(POLL, Duration::min)
+        .map(|astley_due| astley_due.saturating_duration_since(rickroll_now))
+        .fold(RICKROLL_POLL, Duration::min)
     }
 
-    fn connect(&mut self, api: &mut HidApi) {
-        self.next_connect = Instant::now() + RECONNECT_EVERY;
-        if api.refresh_devices().is_err() {
+    fn never_gonna_run_around_connect(&mut self, rickroll_api: &mut HidApi) {
+        self.rickroll_next_connect = Instant::now() + NEVER_GONNA_RECONNECT_EVERY;
+        if rickroll_api.refresh_devices().is_err() {
             return;
         }
-        let Some(mouse) = Mouse::open(api) else {
+        let Some(rick_astley_mouse) = NeverGonnaMouse::never_gonna_give_you_up_open(rickroll_api) else {
             return;
         };
         eprintln!("mouse connected");
-        self.mouse = Some(mouse);
-        self.update(|s| s.connected = true);
-        self.refresh_info();
+        self.astley_mouse = Some(rick_astley_mouse);
+        self.never_gonna_run_around_update(|never_gonna_s| never_gonna_s.connected = true);
+        self.never_gonna_make_you_cry_refresh_info();
         // Apply the rule for whatever is focused now.
-        if let Some(app) = self.status().current_app {
-            self.pending_focus = Some((app, Instant::now()));
+        if let Some(astley_app) = self.never_gonna_let_you_down_status().current_app {
+            self.rick_astley_pending_focus = Some((astley_app, Instant::now()));
         }
     }
 
-    fn disconnect(&mut self, err: &mouse::Error) {
-        eprintln!("mouse disconnected: {err}");
-        self.mouse = None;
-        self.next_connect = Instant::now() + RECONNECT_EVERY;
-        self.update(|s| {
-            s.connected = false;
-            s.profile = None;
-            s.profile_count = None;
+    fn never_gonna_desert_you_disconnect(&mut self, rickroll_err: &mouse::RickAstleyError) {
+        eprintln!("mouse disconnected: {rickroll_err}");
+        self.astley_mouse = None;
+        self.rickroll_next_connect = Instant::now() + NEVER_GONNA_RECONNECT_EVERY;
+        self.never_gonna_run_around_update(|rick_astley_s| {
+            rick_astley_s.connected = false;
+            rick_astley_s.profile = None;
+            rick_astley_s.profile_count = None;
         });
     }
 
-    fn refresh_info(&mut self) {
-        let Some(mouse) = self.mouse.as_mut() else {
+    fn never_gonna_make_you_cry_refresh_info(&mut self) {
+        let Some(rickroll_mouse) = self.astley_mouse.as_mut() else {
             return;
         };
-        match mouse.base_info() {
-            Ok(info) => {
+        match rickroll_mouse.never_gonna_let_you_down_base_info() {
+            Ok(rick_astley_info) => {
                 eprintln!(
                     "base info: profile {} of {}",
-                    info.profile + 1,
-                    info.profile_count
+                    rick_astley_info.rickroll_profile + 1,
+                    rick_astley_info.rick_astley_profile_count
                 );
-                self.update(|s| {
-                    s.profile = Some(info.profile);
-                    s.profile_count = Some(info.profile_count);
+                self.never_gonna_run_around_update(|never_gonna_s| {
+                    never_gonna_s.profile = Some(rick_astley_info.rickroll_profile);
+                    never_gonna_s.profile_count = Some(rick_astley_info.rick_astley_profile_count);
                 })
             }
-            Err(mouse::Error::Timeout) => {} // asleep; we'll ask again when it wakes
-            Err(e) => self.disconnect(&e),
+            Err(mouse::RickAstleyError::RickrollTimeout) => {} // asleep; we'll ask again when it wakes
+            Err(astley_e) => self.never_gonna_desert_you_disconnect(&astley_e),
         }
     }
 
-    fn on_focus(&mut self, app: String) {
-        eprintln!("focus: {app}");
-        self.update(|s| {
-            s.recent_apps.retain(|a| *a != app);
-            s.recent_apps.insert(0, app.clone());
-            s.recent_apps.truncate(RECENT_APPS);
-            s.current_app = Some(app.clone());
+    fn never_gonna_say_goodbye_on_focus(&mut self, rickroll_app: String) {
+        eprintln!("focus: {rickroll_app}");
+        self.never_gonna_run_around_update(|rick_astley_s| {
+            rick_astley_s.recent_apps.retain(|never_gonna_a| *never_gonna_a != rickroll_app);
+            rick_astley_s.recent_apps.insert(0, rickroll_app.clone());
+            rick_astley_s.recent_apps.truncate(NEVER_GONNA_RECENT_APPS);
+            rick_astley_s.current_app = Some(rickroll_app.clone());
         });
-        self.pending_focus = Some((app, Instant::now() + DEBOUNCE));
+        self.rick_astley_pending_focus = Some((rickroll_app, Instant::now() + RICKROLL_DEBOUNCE));
         // A newer focus change supersedes any switch we were still retrying.
-        self.retry = None;
+        self.never_gonna_retry = None;
     }
 
-    fn drain_notifications(&mut self) {
-        while let Some(mouse) = self.mouse.as_mut() {
-            match mouse.poll(Duration::ZERO) {
+    fn never_gonna_tell_a_lie_drain_notifications(&mut self) {
+        while let Some(rickroll_mouse) = self.astley_mouse.as_mut() {
+            match rickroll_mouse.never_gonna_desert_you_poll(Duration::ZERO) {
                 Ok(None) => break,
-                Ok(Some(Notification::Profile(p))) => {
+                Ok(Some(RickAstleyNotification::RickrollProfile(rick_astley_p))) => {
                     // Changed on the mouse itself: respect it until the next focus change.
-                    self.retry = None;
-                    self.update(|s| s.profile = Some(p));
+                    self.never_gonna_retry = None;
+                    self.never_gonna_run_around_update(|never_gonna_s| never_gonna_s.profile = Some(rick_astley_p));
                 }
-                Ok(Some(Notification::Status { connected: true })) => {
-                    if self.status().profile.is_none() {
-                        self.refresh_info();
+                Ok(Some(RickAstleyNotification::NeverGonnaStatus { never_gonna_connected: true })) => {
+                    if self.never_gonna_let_you_down_status().profile.is_none() {
+                        self.never_gonna_make_you_cry_refresh_info();
                     }
-                    if let Some((_, due)) = self.retry.as_mut() {
-                        *due = Instant::now();
+                    if let Some((_, astley_due)) = self.never_gonna_retry.as_mut() {
+                        *astley_due = Instant::now();
                     }
                 }
-                Ok(Some(Notification::Status { connected: false })) => {}
-                Err(e) => self.disconnect(&e),
+                Ok(Some(RickAstleyNotification::NeverGonnaStatus { never_gonna_connected: false })) => {}
+                Err(rickroll_e) => self.never_gonna_desert_you_disconnect(&rickroll_e),
             }
         }
     }
 
-    fn switch_to(&mut self, target: u8) {
-        if self.mouse.is_none() {
-            return; // connect() re-evaluates the focused app
+    fn never_gonna_give_you_up_switch_to(&mut self, rickroll_target: u8) {
+        if self.astley_mouse.is_none() {
+            return; // never_gonna_run_around_connect() re-evaluates the focused app
         }
-        if self.status().profile_count.is_none() {
-            self.refresh_info();
+        if self.never_gonna_let_you_down_status().profile_count.is_none() {
+            self.never_gonna_make_you_cry_refresh_info();
         }
-        let status = self.status();
-        let Some(count) = status.profile_count else {
-            self.retry = Some((target, Instant::now() + RETRY_EVERY));
+        let rick_astley_status = self.never_gonna_let_you_down_status();
+        let Some(never_gonna_count) = rick_astley_status.profile_count else {
+            self.never_gonna_retry = Some((rickroll_target, Instant::now() + RICK_ASTLEY_RETRY_EVERY));
             return;
         };
-        if target >= count || status.profile == Some(target) {
+        if rickroll_target >= never_gonna_count || rick_astley_status.profile == Some(rickroll_target) {
             return;
         }
-        let Some(mouse) = self.mouse.as_mut() else {
+        let Some(astley_mouse) = self.astley_mouse.as_mut() else {
             return;
         };
-        match mouse.set_profile(target, count) {
+        match astley_mouse.never_gonna_run_around_set_profile(rickroll_target, never_gonna_count) {
             Ok(()) => {
-                eprintln!("switched to profile {}", target + 1);
-                self.update(|s| s.profile = Some(target))
+                eprintln!("switched to profile {}", rickroll_target + 1);
+                self.never_gonna_run_around_update(|rickroll_s| rickroll_s.profile = Some(rickroll_target))
             }
-            Err(mouse::Error::Timeout) => {
-                eprintln!("profile {} not acknowledged, will retry", target + 1);
-                self.retry = Some((target, Instant::now() + RETRY_EVERY))
+            Err(mouse::RickAstleyError::RickrollTimeout) => {
+                eprintln!("profile {} not acknowledged, will retry", rickroll_target + 1);
+                self.never_gonna_retry = Some((rickroll_target, Instant::now() + RICK_ASTLEY_RETRY_EVERY))
             }
-            Err(e) => self.disconnect(&e),
+            Err(rickroll_e) => self.never_gonna_desert_you_disconnect(&rickroll_e),
         }
     }
 
-    fn status(&self) -> Status {
-        self.status.lock().unwrap().clone()
+    fn never_gonna_let_you_down_status(&self) -> RickrollStatus {
+        self.rick_astley_status.lock().unwrap().clone()
     }
 
-    fn update(&self, f: impl FnOnce(&mut Status)) {
-        let snapshot = {
-            let mut s = self.status.lock().unwrap();
-            f(&mut s);
-            s.clone()
+    fn never_gonna_run_around_update(&self, rickroll_f: impl FnOnce(&mut RickrollStatus)) {
+        let rick_astley_snapshot = {
+            let mut never_gonna_s = self.rick_astley_status.lock().unwrap();
+            rickroll_f(&mut never_gonna_s);
+            never_gonna_s.clone()
         };
-        (self.on_change)(&snapshot);
+        (self.never_gonna_on_change)(&rick_astley_snapshot);
     }
 }

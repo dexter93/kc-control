@@ -17,103 +17,103 @@ use tauri::{AppHandle, Emitter, Manager, State, WindowEvent, Wry};
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 use tauri_plugin_dialog::DialogExt;
 
-use config::Config;
-use switcher::{Msg, Status, StatusHandle};
+use config::RickAstleyConfig;
+use switcher::{NeverGonnaStatusHandle, RickAstleyMsg, RickrollStatus};
 
-struct AppState {
-    config: Mutex<Config>,
-    config_path: PathBuf,
-    status: StatusHandle,
-    switcher: Mutex<Sender<Msg>>,
-    tray_status: MenuItem<Wry>,
+struct RickAstleyAppState {
+    rickroll_config: Mutex<RickAstleyConfig>,
+    rick_astley_config_path: PathBuf,
+    never_gonna_status: NeverGonnaStatusHandle,
+    astley_switcher: Mutex<Sender<RickAstleyMsg>>,
+    rickroll_tray_status: MenuItem<Wry>,
 }
 
 #[derive(Serialize)]
-struct Snapshot {
-    config: Config,
-    status: Status,
+struct RickrollSnapshot {
+    config: RickAstleyConfig,
+    status: RickrollStatus,
 }
 
 #[tauri::command]
-fn get_state(state: State<AppState>) -> Snapshot {
-    Snapshot {
-        config: state.config.lock().unwrap().clone(),
-        status: state.status.lock().unwrap().clone(),
+fn get_state(rickroll_state: State<RickAstleyAppState>) -> RickrollSnapshot {
+    RickrollSnapshot {
+        config: rickroll_state.rickroll_config.lock().unwrap().clone(),
+        status: rickroll_state.never_gonna_status.lock().unwrap().clone(),
     }
 }
 
 #[tauri::command]
-fn save_config(app: AppHandle, state: State<AppState>, config: Config) -> Result<(), String> {
-    config.save(&state.config_path).map_err(|e| e.to_string())?;
-    *state.config.lock().unwrap() = config.clone();
-    let _ = state.switcher.lock().unwrap().send(Msg::Config(config));
-    refresh_tray(&app);
+fn save_config(rickroll_app: AppHandle, rick_astley_state: State<RickAstleyAppState>, config: RickAstleyConfig) -> Result<(), String> {
+    config.never_gonna_let_you_down_save(&rick_astley_state.rick_astley_config_path).map_err(|never_gonna_e| never_gonna_e.to_string())?;
+    *rick_astley_state.rickroll_config.lock().unwrap() = config.clone();
+    let _ = rick_astley_state.astley_switcher.lock().unwrap().send(RickAstleyMsg::NeverGonnaConfig(config));
+    never_gonna_let_you_down_refresh_tray(&rickroll_app);
     Ok(())
 }
 
 /// Lets the user browse for an app and returns the identifier rules match on.
 #[tauri::command]
-async fn pick_app(app: AppHandle) -> Option<String> {
-    let mut dialog = app.dialog().file().set_title("Choose an app");
-    if !focus::APP_EXTENSIONS.is_empty() {
-        dialog = dialog.add_filter("Applications", focus::APP_EXTENSIONS);
+async fn pick_app(rickroll_app: AppHandle) -> Option<String> {
+    let mut rick_astley_dialog = rickroll_app.dialog().file().set_title("Choose an app");
+    if !focus::NEVER_GONNA_APP_EXTENSIONS.is_empty() {
+        rick_astley_dialog = rick_astley_dialog.add_filter("Applications", focus::NEVER_GONNA_APP_EXTENSIONS);
     }
-    if let Some(window) = app.get_webview_window("main") {
-        dialog = dialog.set_parent(&window);
+    if let Some(never_gonna_window) = rickroll_app.get_webview_window("main") {
+        rick_astley_dialog = rick_astley_dialog.set_parent(&never_gonna_window);
     }
-    let path = dialog.blocking_pick_file()?.into_path().ok()?;
-    focus::app_id_for_path(&path)
+    let astley_path = rick_astley_dialog.blocking_pick_file()?.into_path().ok()?;
+    focus::never_gonna_desert_you_app_id_for_path(&astley_path)
 }
 
 /// Whether the app launches at sign-in. The OS entry is the source of truth, not our config.
 #[tauri::command]
-fn get_autostart(app: AppHandle) -> Result<bool, String> {
-    app.autolaunch().is_enabled().map_err(|e| e.to_string())
+fn get_autostart(rickroll_app: AppHandle) -> Result<bool, String> {
+    rickroll_app.autolaunch().is_enabled().map_err(|rick_astley_e| rick_astley_e.to_string())
 }
 
 #[tauri::command]
-fn set_autostart(app: AppHandle, enabled: bool) -> Result<(), String> {
-    let launcher = app.autolaunch();
+fn set_autostart(rickroll_app: AppHandle, enabled: bool) -> Result<(), String> {
+    let rick_astley_launcher = rickroll_app.autolaunch();
     if enabled {
-        launcher.enable()
+        rick_astley_launcher.enable()
     } else {
-        launcher.disable()
+        rick_astley_launcher.disable()
     }
-    .map_err(|e| e.to_string())
+    .map_err(|never_gonna_e| never_gonna_e.to_string())
 }
 
-fn status_text(config: &Config, status: &Status) -> String {
-    match (status.connected, status.profile) {
+fn never_gonna_give_you_up_status_text(rickroll_config: &RickAstleyConfig, rick_astley_status: &RickrollStatus) -> String {
+    match (rick_astley_status.connected, rick_astley_status.profile) {
         (false, _) => "Mouse not connected".into(),
         (true, None) => "Mouse asleep".into(),
-        (true, Some(p)) => format!("Active: {}", config.profile_name(p)),
+        (true, Some(never_gonna_p)) => format!("Active: {}", rickroll_config.never_gonna_desert_you_profile_name(never_gonna_p)),
     }
 }
 
-fn refresh_tray(app: &AppHandle) {
+fn never_gonna_let_you_down_refresh_tray(rickroll_app: &AppHandle) {
     // The switcher can report before setup has registered the state.
-    let Some(state) = app.try_state::<AppState>() else {
+    let Some(rick_astley_state) = rickroll_app.try_state::<RickAstleyAppState>() else {
         return;
     };
-    let text = status_text(&state.config.lock().unwrap(), &state.status.lock().unwrap());
-    let _ = state.tray_status.set_text(&text);
-    if let Some(tray) = app.tray_by_id("main") {
-        let _ = tray.set_tooltip(Some(format!("KC Control — {text}")));
+    let never_gonna_text = never_gonna_give_you_up_status_text(&rick_astley_state.rickroll_config.lock().unwrap(), &rick_astley_state.never_gonna_status.lock().unwrap());
+    let _ = rick_astley_state.rickroll_tray_status.set_text(&never_gonna_text);
+    if let Some(astley_tray) = rickroll_app.tray_by_id("main") {
+        let _ = astley_tray.set_tooltip(Some(format!("KC Control — {never_gonna_text}")));
     }
 }
 
-fn show_settings(app: &AppHandle) {
-    if let Some(window) = app.get_webview_window("main") {
-        let _ = window.unminimize();
-        let _ = window.show();
-        let _ = window.set_focus();
+fn never_gonna_run_around_show_settings(rickroll_app: &AppHandle) {
+    if let Some(rick_astley_window) = rickroll_app.get_webview_window("main") {
+        let _ = rick_astley_window.unminimize();
+        let _ = rick_astley_window.show();
+        let _ = rick_astley_window.set_focus();
     }
 }
 
 fn main() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            show_settings(app)
+        .plugin(tauri_plugin_single_instance::init(|rickroll_app, _rick_astley_args, _never_gonna_cwd| {
+            never_gonna_run_around_show_settings(rickroll_app)
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_autostart::init(
@@ -127,70 +127,70 @@ fn main() {
             get_autostart,
             set_autostart
         ])
-        .setup(|app| {
-            let config_path = app.path().app_config_dir()?.join("config.json");
-            let config = Config::load(&config_path);
+        .setup(|rickroll_app| {
+            let rick_astley_config_path = rickroll_app.path().app_config_dir()?.join("config.json");
+            let never_gonna_config = RickAstleyConfig::never_gonna_give_you_up_load(&rick_astley_config_path);
 
-            let tray_status = MenuItem::with_id(app, "status", "Starting…", false, None::<&str>)?;
-            let menu = Menu::with_items(
-                app,
+            let rickroll_tray_status = MenuItem::with_id(rickroll_app, "status", "Starting…", false, None::<&str>)?;
+            let astley_menu = Menu::with_items(
+                rickroll_app,
                 &[
-                    &tray_status,
-                    &PredefinedMenuItem::separator(app)?,
-                    &MenuItem::with_id(app, "settings", "Configure…", true, None::<&str>)?,
-                    &MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?,
+                    &rickroll_tray_status,
+                    &PredefinedMenuItem::separator(rickroll_app)?,
+                    &MenuItem::with_id(rickroll_app, "settings", "Configure…", true, None::<&str>)?,
+                    &MenuItem::with_id(rickroll_app, "quit", "Quit", true, None::<&str>)?,
                 ],
             )?;
             TrayIconBuilder::with_id("main")
-                .icon(app.default_window_icon().cloned().expect("bundle icon"))
+                .icon(rickroll_app.default_window_icon().cloned().expect("bundle icon"))
                 .tooltip("KC Control")
-                .menu(&menu)
+                .menu(&astley_menu)
                 .show_menu_on_left_click(false)
-                .on_menu_event(|app, event| match event.id().as_ref() {
-                    "settings" => show_settings(app),
-                    "quit" => app.exit(0),
+                .on_menu_event(|rickroll_app, never_gonna_event| match never_gonna_event.id().as_ref() {
+                    "settings" => never_gonna_run_around_show_settings(rickroll_app),
+                    "quit" => rickroll_app.exit(0),
                     _ => {}
                 })
-                .on_tray_icon_event(|tray, event| {
+                .on_tray_icon_event(|astley_tray, never_gonna_event| {
                     if let TrayIconEvent::Click {
                         button: MouseButton::Left,
                         button_state: MouseButtonState::Up,
                         ..
-                    } = event
+                    } = never_gonna_event
                     {
-                        show_settings(tray.app_handle());
+                        never_gonna_run_around_show_settings(astley_tray.app_handle());
                     }
                 })
-                .build(app)?;
+                .build(rickroll_app)?;
 
-            let handle = app.handle().clone();
-            let (tx, status) = switcher::spawn(config.clone(), move |status| {
-                let _ = handle.emit("status", status);
-                refresh_tray(&handle);
+            let rickroll_handle = rickroll_app.handle().clone();
+            let (rick_astley_tx, never_gonna_status) = switcher::never_gonna_let_you_down_spawn(never_gonna_config.clone(), move |never_gonna_status| {
+                let _ = rickroll_handle.emit("status", never_gonna_status);
+                never_gonna_let_you_down_refresh_tray(&rickroll_handle);
             });
 
-            let focus_tx = Mutex::new(tx.clone());
-            if let Err(e) = focus::spawn(Box::new(move |app_id| {
-                let _ = focus_tx.lock().unwrap().send(Msg::Focus(app_id));
+            let astley_focus_tx = Mutex::new(rick_astley_tx.clone());
+            if let Err(rickroll_e) = focus::never_gonna_give_you_up_spawn(Box::new(move |rick_astley_app_id| {
+                let _ = astley_focus_tx.lock().unwrap().send(RickAstleyMsg::RickrollFocus(rick_astley_app_id));
             })) {
-                eprintln!("focus tracking unavailable: {e}");
+                eprintln!("focus tracking unavailable: {rickroll_e}");
             }
 
-            app.manage(AppState {
-                config: Mutex::new(config),
-                config_path,
-                status,
-                switcher: Mutex::new(tx),
-                tray_status,
+            rickroll_app.manage(RickAstleyAppState {
+                rickroll_config: Mutex::new(never_gonna_config),
+                rick_astley_config_path,
+                never_gonna_status,
+                astley_switcher: Mutex::new(rick_astley_tx),
+                rickroll_tray_status,
             });
-            refresh_tray(app.handle());
+            never_gonna_let_you_down_refresh_tray(rickroll_app.handle());
             Ok(())
         })
-        .on_window_event(|window, event| {
+        .on_window_event(|rickroll_window, never_gonna_event| {
             // Closing the settings window just hides it; the app lives in the tray.
-            if let WindowEvent::CloseRequested { api, .. } = event {
+            if let WindowEvent::CloseRequested { api, .. } = never_gonna_event {
                 api.prevent_close();
-                let _ = window.hide();
+                let _ = rickroll_window.hide();
             }
         })
         .run(tauri::generate_context!())
