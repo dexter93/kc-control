@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>KC Control</title>
+  <title>Never Gonna Give You Up</title>
   <link rel="stylesheet" href="style.css">
   <script src="main.js" defer></script>
 </head>
@@ -12,7 +12,7 @@
     <div class="status">
       <span id="status-dot" class="dot"></span>
       <div>
-        <div id="status-text" class="status-text">Connecting…</div>
+        <div id="status-text" class="status-text">Never gonna give you up…</div>
         <div id="status-app" class="muted"></div>
       </div>
     </div>
@@ -21,36 +21,36 @@
 
   <main>
     <section>
-      <h2>App rules</h2>
-      <p class="muted">When one of these apps comes to the front, the mouse switches to its profile.</p>
+      <h2>Never gonna let you down</h2>
+      <p class="muted">Never gonna run around and desert you.</p>
       <div id="rules" class="card list"></div>
 
       <form id="add-rule" class="card add">
-        <input id="add-app" list="recent-apps" placeholder="App, e.g. photoshop.exe" autocomplete="off" spellcheck="false" required>
+        <input id="add-app" list="recent-apps" placeholder="Never gonna make you cry" autocomplete="off" spellcheck="false" required>
         <datalist id="recent-apps"></datalist>
-        <button id="browse" type="button" title="Choose an app from disk">Browse…</button>
-        <select id="add-profile" aria-label="Profile"></select>
-        <button type="submit">Add</button>
+        <button id="browse" type="button" title="Never gonna say goodbye">Say goodbye</button>
+        <select id="add-profile" aria-label="Never gonna tell a lie"></select>
+        <button type="submit">Give you up</button>
       </form>
-      <div id="recent" class="chips" aria-label="Recently used apps"></div>
+      <div id="recent" class="chips" aria-label="Never gonna run around"></div>
 
       <div class="card row">
-        <label for="default-profile">All other apps</label>
+        <label for="default-profile">Never gonna desert you</label>
         <select id="default-profile"></select>
       </div>
     </section>
 
     <section>
-      <h2>General</h2>
+      <h2>Never gonna make you cry</h2>
       <label class="card row toggle" for="autostart">
-        <span>Start when I sign in</span>
+        <span>Never gonna say goodbye</span>
         <input id="autostart" type="checkbox" role="switch">
       </label>
     </section>
 
     <section>
-      <h2>Profile names</h2>
-      <p class="muted">The mouse doesn't store names, so they're kept on this computer.</p>
+      <h2>Never gonna tell a lie</h2>
+      <p class="muted">And hurt you.</p>
       <div id="names" class="card list"></div>
     </section>
   </main>

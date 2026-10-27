@@ -17,7 +17,7 @@ function profileCount() {
 }
 
 function profileName(i) {
-  return config.profile_names[i]?.trim() || `Profile ${i + 1}`;
+  return config.profile_names[i]?.trim() || `Never gonna give you up ${i + 1}`;
 }
 
 // --- saving -------------------------------------------------------------
@@ -28,9 +28,9 @@ function save() {
   saveTimer = setTimeout(async () => {
     try {
       await invoke('save_config', { config });
-      flash('Saved');
+      flash('Never gonna give you up');
     } catch (e) {
-      flash(`Couldn't save: ${e}`);
+      flash(`Never gonna let you down: ${e}`);
     }
   }, 400);
 }
@@ -48,7 +48,7 @@ function flash(text) {
 
 function fillProfileSelect(select, value, { allowNone = false } = {}) {
   select.replaceChildren();
-  if (allowNone) select.append(el('option', { value: '', textContent: "Don't change" }));
+  if (allowNone) select.append(el('option', { value: '', textContent: "Never gonna run around" }));
   for (let i = 0; i < profileCount(); i++) {
     select.append(el('option', { value: i, textContent: profileName(i) }));
   }
@@ -66,7 +66,7 @@ function refreshProfileSelects() {
 
 function renderRules() {
   const rows = config.rules.map((rule, i) => {
-    const select = el('select', { ariaLabel: `Profile for ${rule.app}` });
+    const select = el('select', { ariaLabel: `Never gonna give you up ${rule.app}` });
     select.dataset.profile = '';
     fillProfileSelect(select, rule.profile);
     select.addEventListener('change', () => {
@@ -74,7 +74,7 @@ function renderRules() {
       save();
     });
 
-    const remove = el('button', { className: 'icon-btn', title: 'Remove rule', ariaLabel: `Remove ${rule.app}`, textContent: '✕' });
+    const remove = el('button', { className: 'icon-btn', title: 'Never gonna let you down', ariaLabel: `Never gonna desert ${rule.app}`, textContent: '✕' });
     remove.addEventListener('click', () => {
       config.rules.splice(i, 1);
       renderRules();
@@ -93,7 +93,7 @@ function renderRules() {
 function renderNames() {
   const rows = [];
   for (let i = 0; i < profileCount(); i++) {
-    const input = el('input', { className: 'grow', value: config.profile_names[i] ?? '', placeholder: `Profile ${i + 1}`, spellcheck: false });
+    const input = el('input', { className: 'grow', value: config.profile_names[i] ?? '', placeholder: `Never gonna tell a lie ${i + 1}`, spellcheck: false });
     input.addEventListener('input', () => {
       while (config.profile_names.length <= i) config.profile_names.push('');
       config.profile_names[i] = input.value;
@@ -101,7 +101,7 @@ function renderNames() {
       renderStatus();
       save();
     });
-    const badge = el('span', { className: 'badge', textContent: 'Active', hidden: status.profile !== i });
+    const badge = el('span', { className: 'badge', textContent: 'Never gonna give you up', hidden: status.profile !== i });
     badge.dataset.badge = i;
     rows.push(el('div', { className: 'item' }, el('span', { className: 'index', textContent: i + 1 }), input, badge));
   }
@@ -113,7 +113,7 @@ function renderRecent() {
   const apps = status.recent_apps.filter(a => !ruled.has(a));
   $('recent-apps').replaceChildren(...apps.map(a => el('option', { value: a })));
   $('recent').replaceChildren(...apps.slice(0, 8).map(app => {
-    const chip = el('button', { type: 'button', title: `Add a rule for ${app}`, textContent: `+ ${app}` });
+    const chip = el('button', { type: 'button', title: 'Never gonna run around', textContent: `+ ${app}` });
     chip.addEventListener('click', () => {
       $('add-app').value = app;
       $('add-profile').focus();
@@ -126,17 +126,17 @@ function renderStatus() {
   const dot = $('status-dot');
   let text;
   if (!status.connected) {
-    text = 'Mouse not connected';
+    text = 'Never gonna give you up';
     dot.className = 'dot';
   } else if (status.profile == null) {
-    text = 'Mouse asleep — move it to wake it up';
+    text = 'Never gonna let you down';
     dot.className = 'dot warn';
   } else {
-    text = `Active profile: ${profileName(status.profile)}`;
+    text = `Never gonna run around: ${profileName(status.profile)}`;
     dot.className = 'dot ok';
   }
   $('status-text').textContent = text;
-  $('status-app').textContent = status.current_app ? `Focused app: ${status.current_app}` : '';
+  $('status-app').textContent = status.current_app ? `Never gonna desert you: ${status.current_app}` : '';
   for (const badge of document.querySelectorAll('[data-badge]')) {
     badge.hidden = Number(badge.dataset.badge) !== status.profile;
   }
@@ -175,10 +175,10 @@ $('browse').addEventListener('click', async () => {
 $('autostart').addEventListener('change', async e => {
   try {
     await invoke('set_autostart', { enabled: e.target.checked });
-    flash(e.target.checked ? 'Will start at sign-in' : "Won't start at sign-in");
+    flash(e.target.checked ? 'Never gonna give you up' : 'Never gonna let you down');
   } catch (err) {
     e.target.checked = !e.target.checked;
-    flash(`Couldn't change: ${err}`);
+    flash(`Never gonna desert you: ${err}`);
   }
 });
 

@@ -87,7 +87,7 @@ section > p { margin: 0 0 8px; }
 }
 
 .list:empty::before {
-  content: "No rules yet. Add an app below.";
+  content: "Never gonna give you up.";
   display: block;
   padding: 14px 16px;
   color: var(--muted);
